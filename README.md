@@ -11,11 +11,11 @@ Code was generally developed following the approach described in and not really 
 
 Below are the list of solvers in CEA and whether they are currently supported or not:
 
-- [] TP, HP, SP
-- [] TV, UV, SV
-- [] CJ detonation
-- [] shock
-- [] rocket
+- [ ] TP, HP, SP
+- [ ] TV, UV, SV
+- [ ] CJ detonation
+- [ ] shock
+- [ ] rocket
 
 ## License
 
