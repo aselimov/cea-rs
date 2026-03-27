@@ -1,0 +1,22 @@
+pub enum Phase {
+    Gas,
+    Condensed,
+}
+
+pub struct SpeciesPolynomial {
+    pub name: String,
+    pub elements: Vec<SpeciesElement>,
+    pub phase: Phase,
+    pub polynomials: Vec<Polynomial>,
+    pub molecular_weight: f64,
+    pub h_formation: f64,
+}
+pub struct Polynomial {
+    pub a: Vec<f64>,
+    pub temp_range: (f64, f64),
+}
+
+pub struct SpeciesElement {
+    pub element: String,
+    pub count: f64,
+}
