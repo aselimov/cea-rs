@@ -167,7 +167,10 @@ fn parse_polynomial_block<'a>(
 
 #[cfg(test)]
 mod test {
-    use crate::{assert_delta, assert_vec_delta, properties::thermo_db::parse_polynomial_block};
+    use crate::{
+        assert_delta, assert_vec_delta,
+        properties::thermo_db::{parse_polynomial_block, parse_polynomials_block},
+    };
 
     #[test]
     fn test_parse_polynomial_block() {
@@ -191,6 +194,68 @@ mod test {
 
         assert_vec_delta!(real, polynomial.a, 1e-9);
         assert_delta!(polynomial.temp_range.0, 1000.000, 1e-3);
-        assert_delta!(polynomial.temp_range.1, 6000.0007, 1e-3);
+        assert_delta!(polynomial.temp_range.1, 6000.000, 1e-3);
+    }
+
+    #[test]
+    fn test_parse_polynomials_block() {
+        let polynomials_block = r#"    300.000   1000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         6918.671
+ 5.006608890D+03 1.861304407D+01 2.412531111D+00 1.987604647D-04-2.432362152D-07
+ 1.538281506D-10-3.944375734D-14                 3.887412680D+04 6.086585765D+00
+   1000.000   6000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         6918.671
+-2.920820938D+04 1.167751876D+02 2.356906505D+00 7.737231520D-05-1.529455262D-08
+-9.971670260D-13 5.053278264D-16                 3.823288650D+04 6.600920155D+00
+   6000.000  20000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         6918.671
+-5.040682320D+08 3.802322650D+05-1.082347159D+02 1.549444292D-02-1.070103856D-06
+ 3.592110900D-11-4.696039394D-16                -2.901050501D+06 9.491883160D+02"#;
+
+        let mut lines = polynomials_block.lines();
+        let polynomials = parse_polynomials_block(&mut lines, 3).unwrap();
+
+        let real_coeff_1 = [
+            5.006608890e+03,
+            1.861304407e+01,
+            2.412531111e+00,
+            1.987604647e-04,
+            -2.432362152e-07,
+            1.538281506e-10,
+            -3.944375734e-14,
+            3.887412680e+04,
+            6.086585765e+00,
+        ];
+
+        assert_vec_delta!(real_coeff_1, polynomials[0].a, 1e-9);
+        assert_delta!(polynomials[0].temp_range.0, 300.000, 1e-3);
+        assert_delta!(polynomials[0].temp_range.1, 1000.000, 1e-3);
+
+        let real_coeff_2 = [
+            -2.920820938e+04,
+            1.167751876e+02,
+            2.356906505e+00,
+            7.737231520e-05,
+            -1.529455262e-08,
+            -9.971670260e-13,
+            5.053278264e-16,
+            3.823288650e+04,
+            6.600920155e+00,
+        ];
+        assert_vec_delta!(real_coeff_2, polynomials[1].a, 1e-9);
+        assert_delta!(polynomials[1].temp_range.0, 1000.000, 1e-3);
+        assert_delta!(polynomials[1].temp_range.1, 6000.000, 1e-3);
+
+        let real_coeff_3 = [
+            -5.040682320e+08,
+            3.802322650e+05,
+            -1.082347159e+02,
+            1.549444292e-02,
+            -1.070103856e-06,
+            3.592110900e-11,
+            -4.696039394e-16,
+            -2.901050501e+06,
+            9.491883160e+02,
+        ];
+        assert_vec_delta!(real_coeff_3, polynomials[2].a, 1e-9);
+        assert_delta!(polynomials[2].temp_range.0, 6000.000, 1e-3);
+        assert_delta!(polynomials[2].temp_range.1, 20000.000, 1e-3);
     }
 }
