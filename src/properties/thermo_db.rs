@@ -4,7 +4,7 @@ use crate::properties::{
     polynomials::{Phase, Polynomial, SpeciesElement, SpeciesPolynomial},
 };
 
-fn parse_fields<'a>(line: &'a str, widths: &[usize]) -> Vec<String> {
+fn parse_fields(line: &str, widths: &[usize]) -> Vec<String> {
     let mut fields = Vec::new();
     let mut pos = 0;
 
@@ -44,72 +44,73 @@ impl ThermoDB {
 
             // Parse species block
             if species_block {
-                species.push(Self::parse_species(&mut lines)?);
+                species.push(parse_species(&mut lines)?);
             }
             //TODO Distinguish between products and reactants
         }
         todo!()
     }
+}
 
-    fn parse_species<'a>(
-        lines: &mut impl Iterator<Item = &'a str>,
-    ) -> Result<SpeciesPolynomial, PropertiesError> {
-        // Parsing a fortran generated file which means we used fixed column width parsing. Define the
-        // fixed column widths used
-        const SPECIES_LINE_2_WIDTHS: &[usize] = &[3, 7, 2, 6, 2, 6, 2, 6, 2, 6, 2, 6, 2, 13, 15];
+fn parse_species<'a>(
+    lines: &mut impl Iterator<Item = &'a str>,
+) -> Result<SpeciesPolynomial, PropertiesError> {
+    // Parsing a fortran generated file which means we used fixed column width parsing. Define the
+    // fixed column widths used
+    const SPECIES_LINE_2_WIDTHS: &[usize] = &[3, 7, 2, 6, 2, 6, 2, 6, 2, 6, 2, 6, 2, 13, 15];
 
-        let line = lines.next().ok_or(PropertiesError::InvalidFile)?;
-        let name = line
-            .get(0..16)
-            .ok_or(PropertiesError::InvalidLine("name".to_string()))?
-            .to_string();
+    let line = lines.next().ok_or(PropertiesError::InvalidFile)?;
+    let name = line
+        .get(0..16)
+        .ok_or(PropertiesError::InvalidLine("name".to_string()))?
+        .trim()
+        .to_string();
 
-        // line 2
-        let line = lines.next().ok_or(PropertiesError::InvalidFile)?;
-        let split = parse_fields(line, SPECIES_LINE_2_WIDTHS);
-        let intervals: usize = split[0]
+    // line 2
+    let line = lines.next().ok_or(PropertiesError::InvalidFile)?;
+    let split = parse_fields(line, SPECIES_LINE_2_WIDTHS);
+    let intervals: usize = split[0]
+        .parse()
+        .map_err(|_| make_parse_error("intervals", "usize", &split[0]))?;
+
+    let mut elements = vec![];
+    for i in (2..=10).step_by(2) {
+        let element = split[i].to_string();
+        let count: f64 = split[i + 1]
             .parse()
-            .map_err(|_| make_parse_error("intervals", "usize", &split[0]))?;
+            .map_err(|_| make_parse_error("species_count", "f64", &split[i + 1]))?;
 
-        let mut elements = vec![];
-        for i in (2..=10).step_by(2) {
-            let element = split[i].to_string();
-            let count: f64 = split[i + 1]
-                .parse()
-                .map_err(|_| make_parse_error("species_count", "f64", &split[i + 1]))?;
-
-            if count.abs() > 1e-8 {
-                elements.push(SpeciesElement { element, count })
-            }
+        if count.abs() > 1e-8 {
+            elements.push(SpeciesElement { element, count })
         }
-
-        let phase = match split[12]
-            .parse::<i32>()
-            .map_err(|_| make_parse_error("phase", "i32", &split[12]))?
-        {
-            0 => Phase::Gas,
-            _ => Phase::Condensed,
-        };
-
-        let molecular_weight = split[13]
-            .parse()
-            .map_err(|_| make_parse_error("molecular_weight", "f64", &split[13]))?;
-
-        let h_formation = split[14]
-            .parse()
-            .map_err(|_| make_parse_error("h_formation", "f64", &split[14]))?;
-
-        let polynomials = parse_polynomials_block(lines, intervals)?;
-
-        Ok(SpeciesPolynomial {
-            name,
-            polynomials,
-            elements,
-            phase,
-            molecular_weight,
-            h_formation,
-        })
     }
+
+    let phase = match split[12]
+        .parse::<i32>()
+        .map_err(|_| make_parse_error("phase", "i32", &split[12]))?
+    {
+        0 => Phase::Gas,
+        _ => Phase::Condensed,
+    };
+
+    let molecular_weight = split[13]
+        .parse()
+        .map_err(|_| make_parse_error("molecular_weight", "f64", &split[13]))?;
+
+    let h_formation = split[14]
+        .parse()
+        .map_err(|_| make_parse_error("h_formation", "f64", &split[14]))?;
+
+    let polynomials = parse_polynomials_block(lines, intervals)?;
+
+    Ok(SpeciesPolynomial {
+        name,
+        polynomials,
+        elements,
+        phase,
+        molecular_weight,
+        h_formation,
+    })
 }
 
 fn parse_polynomials_block<'a>(
@@ -169,7 +170,10 @@ fn parse_polynomial_block<'a>(
 mod test {
     use crate::{
         assert_delta, assert_vec_delta,
-        properties::thermo_db::{parse_polynomial_block, parse_polynomials_block},
+        properties::{
+            polynomials::Phase,
+            thermo_db::{parse_polynomial_block, parse_polynomials_block, parse_species},
+        },
     };
 
     #[test]
@@ -257,5 +261,62 @@ mod test {
         assert_vec_delta!(real_coeff_3, polynomials[2].a, 1e-9);
         assert_delta!(polynomials[2].temp_range.0, 6000.000, 1e-3);
         assert_delta!(polynomials[2].temp_range.1, 20000.000, 1e-3);
+    }
+
+    #[test]
+    fn test_parse_species() {
+        let species = r#"ALBr2             Gurvich,1996a pt1 p186 pt2 p149.
+ 2 tpis96 AL  1.00BR  2.00    0.00    0.00    0.00 0  186.7895380    -140662.125
+    300.000   1000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0        13397.875
+ 3.199375870D+04-7.119178970D+02 9.478258110D+00-4.875531670D-03 5.516512990D-06
+-3.340053040D-09 8.368476840D-13                -1.540591306D+04-1.742171366D+01
+   1000.000   6000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0        13397.875
+-3.523782900D+05 4.671544170D+02 7.111908190D+00-5.551709200D-04 3.166301130D-07
+-5.521028330D-11 3.176725950D-15                -2.265004078D+04-2.695610360D+00"#;
+
+        let mut lines = species.lines();
+        let species = parse_species(&mut lines).unwrap();
+
+        assert_eq!(species.name, "ALBr2");
+        assert_eq!(species.elements.len(), 2);
+        assert_eq!(species.elements[0].element, "AL");
+        assert_eq!(species.elements[0].count, 1.0);
+        assert_eq!(species.elements[1].element, "BR");
+        assert_eq!(species.elements[1].count, 2.0);
+        assert!(matches!(species.phase, Phase::Gas));
+        assert_delta!(species.molecular_weight, 186.7895380, 1e-7);
+        assert_delta!(species.h_formation, -140662.125, 1e-3);
+
+        let real_coeff_1 = [
+            3.199375870e+04,
+            -7.119178970e+02,
+            9.478258110e+00,
+            -4.875531670e-03,
+            5.516512990e-06,
+            -3.340053040e-09,
+            8.368476840e-13,
+            -1.540591306e+04,
+            -1.742171366e+01,
+        ];
+
+        assert_vec_delta!(species.polynomials[0].a, real_coeff_1, 1e-9);
+        assert_delta!(species.polynomials[0].temp_range.0, 300.000, 1e-3);
+        assert_delta!(species.polynomials[0].temp_range.1, 1000.000, 1e-3);
+
+        let real_coeff_2 = [
+            -3.523782900e+05,
+            4.671544170e+02,
+            7.111908190e+00,
+            -5.551709200e-04,
+            3.166301130e-07,
+            -5.521028330e-11,
+            3.176725950e-15,
+            -2.265004078e+04,
+            -2.695610360e+00,
+        ];
+
+        assert_vec_delta!(species.polynomials[1].a, real_coeff_2, 1e-9);
+        assert_delta!(species.polynomials[1].temp_range.0, 1000.000, 1e-3);
+        assert_delta!(species.polynomials[1].temp_range.1, 6000.000, 1e-3);
     }
 }
