@@ -28,27 +28,31 @@ pub struct ThermoDB {
 impl ThermoDB {
     pub fn parse(thermo_inp: &str) -> Result<Self, PropertiesError> {
         let mut lines = thermo_inp.lines();
-        let mut species = Vec::new();
-        let species_block = true;
+        let mut products = Vec::new();
+        let mut reactants = Vec::new();
+        let mut parse_products = true;
         // Skip comments
         while let Some(line) = lines.next() {
-            if line.starts_with("!") {
+            if line.trim().is_empty() || line.starts_with("!") {
                 continue;
-            }
-
-            // Skip pointless header lines
-            if line.contains("thermo") {
+            } else if line.contains("thermo") {
                 _ = lines.next().ok_or(PropertiesError::InvalidFile)?;
                 continue;
+            } else if line.contains("END PRODUCTS") {
+                parse_products = false;
+            } else if line.contains("END REACTANTS") {
+                break;
+            } else if parse_products {
+                products.push(parse_species(&mut lines)?);
+            } else {
+                reactants.push(parse_species(&mut lines)?);
             }
-
-            // Parse species block
-            if species_block {
-                species.push(parse_species(&mut lines)?);
-            }
-            //TODO Distinguish between products and reactants
         }
-        todo!()
+
+        Ok(ThermoDB {
+            products,
+            reactants,
+        })
     }
 }
 
@@ -172,7 +176,7 @@ mod test {
         assert_delta, assert_vec_delta,
         properties::{
             polynomials::Phase,
-            thermo_db::{parse_polynomial_block, parse_polynomials_block, parse_species},
+            thermo_db::{ThermoDB, parse_polynomial_block, parse_polynomials_block, parse_species},
         },
     };
 
@@ -318,5 +322,39 @@ mod test {
         assert_vec_delta!(species.polynomials[1].a, real_coeff_2, 1e-9);
         assert_delta!(species.polynomials[1].temp_range.0, 1000.000, 1e-3);
         assert_delta!(species.polynomials[1].temp_range.1, 6000.000, 1e-3);
+    }
+
+    #[test]
+    fn test_parse_thermo_db() {
+        let thermo_file_contents = r#"!
+! Some pointless header lines
+!
+
+thermo
+    200.00   1000.00   6000.00  20000.   9/8/2021
+ALCL3             Gurvich,1996a pt1 p173 pt2 p134.
+ 2 tpis96 AL  1.00CL  3.00    0.00    0.00    0.00 0  133.3405380    -584678.863
+    300.000   1000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0        16400.803
+ 7.750600970D+04-1.440779717D+03 1.401744141D+01-6.381631240D-03 5.871674720D-06
+-2.908872278D-09 5.994050890D-13                -6.579343180D+04-4.494017799D+01
+   1000.000   6000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0        16400.803
+-1.378630916D+05-5.579207290D+01 1.004190387D+01-1.682165339D-05 3.724664660D-09
+-4.275526780D-13 1.982341329D-17                -7.343407470D+04-2.045130429D+01
+END PRODUCTS
+
+Air               Mole%:N2 78.084,O2 20.9476,Ar .9365,CO2 .0319.Gordon,1982.Reac
+ 2 g 9/95 N 1.5617O .41959AR.00937C .00032  .00000 0   28.9651159       -125.530
+    300.000   1000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         8649.264
+ 1.009950160D+04-1.968275610D+02 5.009155110D+00-5.761013730D-03 1.066859930D-05
+-7.940297970D-09 2.185231910D-12                -1.767967310D+02-3.921504225D+00
+   1000.000   6000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         8649.264
+ 2.415214430D+05-1.257874600D+03 5.144558670D+00-2.138541790D-04 7.065227840D-08
+-1.071483490D-11 6.577800150D-16                 6.462263190D+03-8.147411905D+00
+n-Butanol         ANL's Active Thermochemical Tables (ATcT).              React.
+ 0 g 5/23 C   4.00H  10.00O   1.00   0.00     0.00 1   74.1216000    -278510.000
+    298.150      0.0000  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0            0.000
+END REACTANTS
+"#;
+        let thermo_db = ThermoDB::parse(thermo_file_contents);
     }
 }
