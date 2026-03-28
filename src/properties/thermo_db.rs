@@ -43,9 +43,9 @@ impl ThermoDB {
             } else if line.contains("END REACTANTS") {
                 break;
             } else if parse_products {
-                products.push(parse_species(&mut lines)?);
+                products.push(parse_species(line, &mut lines)?);
             } else {
-                reactants.push(parse_species(&mut lines)?);
+                reactants.push(parse_species(line, &mut lines)?);
             }
         }
 
@@ -57,13 +57,13 @@ impl ThermoDB {
 }
 
 fn parse_species<'a>(
+    line: &str,
     lines: &mut impl Iterator<Item = &'a str>,
 ) -> Result<SpeciesPolynomial, PropertiesError> {
     // Parsing a fortran generated file which means we used fixed column width parsing. Define the
     // fixed column widths used
     const SPECIES_LINE_2_WIDTHS: &[usize] = &[3, 7, 2, 6, 2, 6, 2, 6, 2, 6, 2, 6, 2, 13, 15];
 
-    let line = lines.next().ok_or(PropertiesError::InvalidFile)?;
     let name = line
         .get(0..16)
         .ok_or(PropertiesError::InvalidLine("name".to_string()))?
@@ -106,6 +106,11 @@ fn parse_species<'a>(
         .map_err(|_| make_parse_error("h_formation", "f64", &split[14]))?;
 
     let polynomials = parse_polynomials_block(lines, intervals)?;
+
+    // 0-interval species still have one reference state line (298.15 K data) that must be consumed
+    if intervals == 0 {
+        lines.next().ok_or(PropertiesError::InvalidFile)?;
+    }
 
     Ok(SpeciesPolynomial {
         name,
@@ -279,7 +284,8 @@ mod test {
 -5.521028330D-11 3.176725950D-15                -2.265004078D+04-2.695610360D+00"#;
 
         let mut lines = species.lines();
-        let species = parse_species(&mut lines).unwrap();
+        let line = lines.next().unwrap();
+        let species = parse_species(line, &mut lines).unwrap();
 
         assert_eq!(species.name, "ALBr2");
         assert_eq!(species.elements.len(), 2);
@@ -355,6 +361,126 @@ n-Butanol         ANL's Active Thermochemical Tables (ATcT).              React.
     298.150      0.0000  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0            0.000
 END REACTANTS
 "#;
-        let thermo_db = ThermoDB::parse(thermo_file_contents);
+        let thermo_db = ThermoDB::parse(thermo_file_contents).unwrap();
+
+        assert_eq!(thermo_db.products.len(), 1);
+        assert_eq!(thermo_db.reactants.len(), 2);
+
+        // --- ALCL3 (product) ---
+        let alcl3 = &thermo_db.products[0];
+        assert_eq!(alcl3.name, "ALCL3");
+        assert_eq!(alcl3.elements.len(), 2);
+        assert_eq!(alcl3.elements[0].element, "AL");
+        assert_delta!(alcl3.elements[0].count, 1.0, 1e-9);
+        assert_eq!(alcl3.elements[1].element, "CL");
+        assert_delta!(alcl3.elements[1].count, 3.0, 1e-9);
+        assert!(matches!(alcl3.phase, Phase::Gas));
+        assert_delta!(alcl3.molecular_weight, 133.3405380, 1e-7);
+        assert_delta!(alcl3.h_formation, -584678.863, 1e-3);
+        assert_eq!(alcl3.polynomials.len(), 2);
+
+        assert_vec_delta!(
+            alcl3.polynomials[0].a,
+            [
+                7.750600970e+04,
+                -1.440779717e+03,
+                1.401744141e+01,
+                -6.381631240e-03,
+                5.871674720e-06,
+                -2.908872278e-09,
+                5.994050890e-13,
+                -6.579343180e+04,
+                -4.494017799e+01,
+            ],
+            1e-9
+        );
+        assert_delta!(alcl3.polynomials[0].temp_range.0, 300.0, 1e-3);
+        assert_delta!(alcl3.polynomials[0].temp_range.1, 1000.0, 1e-3);
+
+        assert_vec_delta!(
+            alcl3.polynomials[1].a,
+            [
+                -1.378630916e+05,
+                -5.579207290e+01,
+                1.004190387e+01,
+                -1.682165339e-05,
+                3.724664660e-09,
+                -4.275526780e-13,
+                1.982341329e-17,
+                -7.343407470e+04,
+                -2.045130429e+01,
+            ],
+            1e-9
+        );
+        assert_delta!(alcl3.polynomials[1].temp_range.0, 1000.0, 1e-3);
+        assert_delta!(alcl3.polynomials[1].temp_range.1, 6000.0, 1e-3);
+
+        // --- Air (reactant 0) ---
+        let air = &thermo_db.reactants[0];
+        assert_eq!(air.name, "Air");
+        assert_eq!(air.elements.len(), 4);
+        assert_eq!(air.elements[0].element, "N");
+        assert_delta!(air.elements[0].count, 1.5617, 1e-9);
+        assert_eq!(air.elements[1].element, "O");
+        assert_delta!(air.elements[1].count, 0.41959, 1e-9);
+        assert_eq!(air.elements[2].element, "AR");
+        assert_delta!(air.elements[2].count, 0.00937, 1e-9);
+        assert_eq!(air.elements[3].element, "C");
+        assert_delta!(air.elements[3].count, 0.00032, 1e-9);
+        assert!(matches!(air.phase, Phase::Gas));
+        assert_delta!(air.molecular_weight, 28.9651159, 1e-7);
+        assert_delta!(air.h_formation, -125.530, 1e-3);
+        assert_eq!(air.polynomials.len(), 2);
+
+        assert_vec_delta!(
+            air.polynomials[0].a,
+            [
+                1.009950160e+04,
+                -1.968275610e+02,
+                5.009155110e+00,
+                -5.761013730e-03,
+                1.066859930e-05,
+                -7.940297970e-09,
+                2.185231910e-12,
+                -1.767967310e+02,
+                -3.921504225e+00,
+            ],
+            1e-9
+        );
+        assert_delta!(air.polynomials[0].temp_range.0, 300.0, 1e-3);
+        assert_delta!(air.polynomials[0].temp_range.1, 1000.0, 1e-3);
+
+        assert_vec_delta!(
+            air.polynomials[1].a,
+            [
+                2.415214430e+05,
+                -1.257874600e+03,
+                5.144558670e+00,
+                -2.138541790e-04,
+                7.065227840e-08,
+                -1.071483490e-11,
+                6.577800150e-16,
+                6.462263190e+03,
+                -8.147411905e+00,
+            ],
+            1e-9
+        );
+        assert_delta!(air.polynomials[1].temp_range.0, 1000.0, 1e-3);
+        assert_delta!(air.polynomials[1].temp_range.1, 6000.0, 1e-3);
+
+        // --- n-Butanol (reactant 1) ---
+        let butanol = &thermo_db.reactants[1];
+        assert_eq!(butanol.name, "n-Butanol");
+        assert_eq!(butanol.elements.len(), 3);
+        assert_eq!(butanol.elements[0].element, "C");
+        assert_delta!(butanol.elements[0].count, 4.0, 1e-9);
+        assert_eq!(butanol.elements[1].element, "H");
+        assert_delta!(butanol.elements[1].count, 10.0, 1e-9);
+        assert_eq!(butanol.elements[2].element, "O");
+        assert_delta!(butanol.elements[2].count, 1.0, 1e-9);
+        assert!(matches!(butanol.phase, Phase::Condensed));
+        assert_delta!(butanol.molecular_weight, 74.1216000, 1e-7);
+        assert_delta!(butanol.h_formation, -278510.000, 1e-3);
+        assert_eq!(butanol.polynomials.len(), 0);
     }
 }
