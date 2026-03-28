@@ -1,5 +1,5 @@
 mod data;
-mod databases;
+mod thermo_db;
 mod error;
 mod polynomials;
 
