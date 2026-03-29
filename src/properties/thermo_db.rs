@@ -1,27 +1,14 @@
 use crate::properties::{
     PropertiesError,
     error::make_parse_error,
-    polynomials::{Phase, Polynomial, SpeciesElement, SpeciesPolynomial},
+    thermo_fit::{Phase, SpeciesElement, SpeciesThermoData, ThermoPolynomial},
+    utils::parse_fields,
 };
 
-fn parse_fields(line: &str, widths: &[usize]) -> Vec<String> {
-    let mut fields = Vec::new();
-    let mut pos = 0;
-
-    for &width in widths {
-        if let Some(field) = line.get(pos..pos + width) {
-            // The replace chnages the fortran formatted D exponential for the normal E exponential
-            fields.push(field.trim().replace("D", "E"));
-        }
-        pos += width;
-    }
-
-    fields
-}
 
 pub struct ThermoDB {
-    pub products: Vec<SpeciesPolynomial>,
-    pub reactants: Vec<SpeciesPolynomial>,
+    pub products: Vec<SpeciesThermoData>,
+    pub reactants: Vec<SpeciesThermoData>,
 }
 
 /// Parse a thermo formatted db
@@ -59,7 +46,7 @@ impl ThermoDB {
 fn parse_species<'a>(
     line: &str,
     lines: &mut impl Iterator<Item = &'a str>,
-) -> Result<SpeciesPolynomial, PropertiesError> {
+) -> Result<SpeciesThermoData, PropertiesError> {
     // Parsing a fortran generated file which means we used fixed column width parsing. Define the
     // fixed column widths used
     const SPECIES_LINE_2_WIDTHS: &[usize] = &[3, 7, 2, 6, 2, 6, 2, 6, 2, 6, 2, 6, 2, 13, 15];
@@ -112,7 +99,7 @@ fn parse_species<'a>(
         lines.next().ok_or(PropertiesError::InvalidFile)?;
     }
 
-    Ok(SpeciesPolynomial {
+    Ok(SpeciesThermoData {
         name,
         polynomials,
         elements,
@@ -125,7 +112,7 @@ fn parse_species<'a>(
 fn parse_polynomials_block<'a>(
     lines: &mut impl Iterator<Item = &'a str>,
     intervals: usize,
-) -> Result<Vec<Polynomial>, PropertiesError> {
+) -> Result<Vec<ThermoPolynomial>, PropertiesError> {
     // Now parse the actual polynomial intervals
     (0..intervals)
         .map(|_| parse_polynomial_block(lines))
@@ -134,7 +121,7 @@ fn parse_polynomials_block<'a>(
 
 fn parse_polynomial_block<'a>(
     lines: &mut impl Iterator<Item = &'a str>,
-) -> Result<Polynomial, PropertiesError> {
+) -> Result<ThermoPolynomial, PropertiesError> {
     // Ignore the coefficients since they are the same
     const SPECIES_INTERVAL_1_WIDTHS: &[usize] = &[11, 11];
     const SPECIES_INTERVAL_2_WIDTHS: &[usize] = &[16; 5];
@@ -169,7 +156,7 @@ fn parse_polynomial_block<'a>(
         );
     }
 
-    Ok(Polynomial {
+    Ok(ThermoPolynomial {
         a,
         temp_range: (temp_lo, temp_hi),
     })
@@ -180,8 +167,8 @@ mod test {
     use crate::{
         assert_delta, assert_vec_delta,
         properties::{
-            polynomials::Phase,
             thermo_db::{ThermoDB, parse_polynomial_block, parse_polynomials_block, parse_species},
+            thermo_fit::Phase,
         },
     };
 

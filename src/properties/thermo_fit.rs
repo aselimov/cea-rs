@@ -3,15 +3,15 @@ pub enum Phase {
     Condensed,
 }
 
-pub struct SpeciesPolynomial {
+pub struct SpeciesThermoData {
     pub name: String,
     pub elements: Vec<SpeciesElement>,
     pub phase: Phase,
-    pub polynomials: Vec<Polynomial>,
+    pub polynomials: Vec<ThermoPolynomial>,
     pub molecular_weight: f64,
     pub h_formation: f64,
 }
-pub struct Polynomial {
+pub struct ThermoPolynomial {
     pub a: Vec<f64>,
     pub temp_range: (f64, f64),
 }

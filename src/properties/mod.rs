@@ -1,6 +1,9 @@
 mod data;
-mod thermo_db;
 mod error;
-mod polynomials;
+mod thermo_db;
+mod thermo_fit;
+mod transport_db;
+mod transport_fit;
+mod utils;
 
 pub use error::PropertiesError;
