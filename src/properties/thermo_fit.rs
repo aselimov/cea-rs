@@ -21,10 +21,54 @@ pub struct SpeciesElement {
     pub count: f64,
 }
 
+impl SpeciesThermoData {
+    pub fn cp_over_r(&self, temp: f64) -> f64 {
+        //TODO: Not the most efficient. Can refactor to pre-compute tables
+        //and do 1-d linear interpolation if needed
+        //
+        //TODO: I Think condensed species need to be treated differently. Verify how that works in
+        //the paper.
+        let i_polynomial = self
+            .polynomials
+            .iter()
+            .rposition(|polynomial| temp > polynomial.temp_range.0)
+            .unwrap_or(0);
+        self.polynomials[i_polynomial].cp_over_r(temp)
+    }
+
+    pub fn h_over_rt(&self, temp: f64) -> f64 {
+        //TODO: Not the most efficient. Can refactor to pre-compute tables
+        //and do 1-d linear interpolation if needed
+        //
+        //TODO: I Think condensed species need to be treated differently. Verify how that works in
+        //the paper.
+        let i_polynomial = self
+            .polynomials
+            .iter()
+            .rposition(|polynomial| temp > polynomial.temp_range.0)
+            .unwrap_or(0);
+        self.polynomials[i_polynomial].h_over_rt(temp)
+    }
+
+    pub fn s_over_r(&self, temp: f64) -> f64 {
+        //TODO: Not the most efficient. Can refactor to pre-compute tables
+        //and do 1-d linear interpolation if needed
+        //
+        //TODO: I Think condensed species need to be treated differently. Verify how that works in
+        //the paper.
+        let i_polynomial = self
+            .polynomials
+            .iter()
+            .rposition(|polynomial| temp > polynomial.temp_range.0)
+            .unwrap_or(0);
+        self.polynomials[i_polynomial].s_over_r(temp)
+    }
+}
+
 impl ThermoPolynomial {
     /// Calculate using eq 4.9 from reference paper
     /// NOTE: This is normalized and unitless
-    pub fn cp_over_r(self, temp: f64) -> f64 {
+    pub fn cp_over_r(&self, temp: f64) -> f64 {
         let inv_temp = 1.0 / temp;
         self.a[0] * inv_temp * inv_temp
             + self.a[1] * inv_temp
@@ -36,7 +80,7 @@ impl ThermoPolynomial {
     }
     /// Calculate using eq 4.10 from reference paper
     /// NOTE: This is normalized and unitless
-    pub fn h_over_rt(self, temp: f64) -> f64 {
+    pub fn h_over_rt(&self, temp: f64) -> f64 {
         let inv_temp = 1.0 / temp;
         -self.a[0] * inv_temp * inv_temp
             + self.a[1] * inv_temp * inv_temp.ln()
@@ -49,7 +93,7 @@ impl ThermoPolynomial {
     }
     /// Calculate using eq 4.11 from reference paper
     /// NOTE: This is normalized and unitless
-    pub fn s_over_r(self, temp: f64) -> f64 {
+    pub fn s_over_r(&self, temp: f64) -> f64 {
         let inv_temp = 1.0 / temp;
         -self.a[0] * inv_temp * inv_temp - self.a[1] * inv_temp
             + self.a[2] * temp.ln()
@@ -63,11 +107,14 @@ impl ThermoPolynomial {
 
 #[cfg(test)]
 mod test {
-    use crate::assert_delta;
     use super::ThermoPolynomial;
+    use crate::assert_delta;
 
     fn poly(a: Vec<f64>) -> ThermoPolynomial {
-        ThermoPolynomial { a, temp_range: (0.0, 0.0) }
+        ThermoPolynomial {
+            a,
+            temp_range: (0.0, 0.0),
+        }
     }
 
     #[test]
