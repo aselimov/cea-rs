@@ -24,7 +24,7 @@ impl TransportDB {
             data.push(parse_species_transport_block(&mut lines)?);
 
             if let Some(line) = lines.peek() {
-                if line.contains("end") {
+                if line.to_lowercase().contains("end") {
                     break;
                 }
             } else {
@@ -69,7 +69,7 @@ fn parse_species_header_line(line: &str) -> Result<(String, usize, usize), Prope
 
     let conductivity_count: usize = splits[4]
         .parse()
-        .map_err(|_| make_parse_error("C", "usize", &splits[2]))?;
+        .map_err(|_| make_parse_error("C", "usize", &splits[4]))?;
     Ok((name, viscosity_count, conductivity_count))
 }
 

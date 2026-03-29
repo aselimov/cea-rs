@@ -5,7 +5,6 @@ use crate::properties::{
     utils::parse_fields,
 };
 
-
 pub struct ThermoDB {
     pub products: Vec<SpeciesThermoData>,
     pub reactants: Vec<SpeciesThermoData>,
@@ -136,7 +135,7 @@ fn parse_polynomial_block<'a>(
 
     let temp_hi: f64 = splits[1]
         .parse()
-        .map_err(|_| make_parse_error("temp_hi", "f64", &splits[0]))?;
+        .map_err(|_| make_parse_error("temp_hi", "f64", &splits[1]))?;
 
     // Now parse the first 5 coefficients
     let line = lines.next().ok_or(PropertiesError::InvalidFile)?;

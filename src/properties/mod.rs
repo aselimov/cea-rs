@@ -1,8 +1,8 @@
 mod data;
 mod error;
-mod thermo_db;
+pub mod thermo_db;
 mod thermo_fit;
-mod transport_db;
+pub mod transport_db;
 mod transport_fit;
 mod utils;
 
