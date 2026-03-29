@@ -17,6 +17,25 @@ Below are the list of solvers in CEA and whether they are currently supported or
 - [ ] shock
 - [ ] rocket
 
+
+## Overview
+
+```
+.
+├── Cargo.toml
+├── LICENSE
+├── README.md
+└── src
+    ├── properties/ # Thermodynamic input data and polynomial calculations
+    ├── models/ # Basic Gas and GasMixture structs
+    ├── equilibrium/ # Iterative solvers for TP, HP, SP, UV, TV, SV
+    ├── rocket/ # Rocket solver functions
+    ├── cj/ # Cj detonation functions
+    ├── shock/ # shock solver functions
+    ├── inputs.rs # input file parsing
+    └── main.rs
+```
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
