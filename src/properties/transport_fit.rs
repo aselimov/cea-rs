@@ -17,22 +17,28 @@ impl SpeciesTransportData {
         }
     }
 
-    pub fn viscosity_at(&self, temp: f64) -> f64 {
+    pub fn viscosity_at(&self, temp: f64) -> Option<f64> {
+        if self.viscosities.is_empty() {
+            return None;
+        }
         let i_viscosity = self
             .viscosities
             .iter()
             .rposition(|viscosity| temp > viscosity.temp_range.0)
             .unwrap_or(0);
-        self.viscosities[i_viscosity].compute(temp)
+        Some(self.viscosities[i_viscosity].compute(temp))
     }
 
-    pub fn conductivity_at(&self, temp: f64) -> f64 {
+    pub fn conductivity_at(&self, temp: f64) -> Option<f64> {
+        if self.conductivities.is_empty() {
+            return None;
+        }
         let i_conductivity = self
             .conductivities
             .iter()
             .rposition(|conductivity| temp > conductivity.temp_range.0)
             .unwrap_or(0);
-        self.conductivities[i_conductivity].compute(temp)
+        Some(self.conductivities[i_conductivity].compute(temp))
     }
 }
 
@@ -68,7 +74,7 @@ mod test {
             d: 40.0,
         };
 
-        assert_delta!(fit.compute(1.0), 90.0, 1e-12);
+        assert_delta!(fit.compute(4.0), 60.73794361119891, 1e-12);
     }
 
     #[test]
