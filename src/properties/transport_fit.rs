@@ -1,10 +1,22 @@
 pub struct SpeciesTransportData {
     pub name: String,
-    pub viscosities: Vec<TransportFit>,
-    pub conductivities: Vec<TransportFit>,
+    viscosities: Vec<TransportFit>,
+    conductivities: Vec<TransportFit>,
 }
 
 impl SpeciesTransportData {
+    pub fn new(
+        name: &str,
+        viscosities: Vec<TransportFit>,
+        conductivities: Vec<TransportFit>,
+    ) -> Self {
+        SpeciesTransportData {
+            name: name.to_string(),
+            viscosities,
+            conductivities,
+        }
+    }
+
     pub fn viscosity_at(&self, temp: f64) -> f64 {
         let i_viscosity = self
             .viscosities

@@ -7,7 +7,7 @@ pub struct SpeciesThermoData {
     pub name: String,
     pub elements: Vec<SpeciesElement>,
     pub phase: Phase,
-    pub polynomials: Vec<ThermoPolynomial>,
+    polynomials: Vec<ThermoPolynomial>,
     pub molecular_weight: f64,
     pub h_formation: f64,
 }
@@ -22,6 +22,28 @@ pub struct SpeciesElement {
 }
 
 impl SpeciesThermoData {
+    pub fn new(
+        name: String,
+        elements: Vec<SpeciesElement>,
+        phase: Phase,
+        polynomials: Vec<ThermoPolynomial>,
+        molecular_weight: f64,
+        h_formation: f64,
+    ) -> Self {
+        Self {
+            name,
+            elements,
+            phase,
+            polynomials,
+            molecular_weight,
+            h_formation,
+        }
+    }
+
+    pub fn num_polynomials(&self) -> usize {
+        self.polynomials.len()
+    }
+
     pub fn polynomial_at(&self, temp: f64) -> &ThermoPolynomial {
         //TODO: Not the most efficient. Can refactor to pre-compute tables
         //and do 1-d linear interpolation if needed
