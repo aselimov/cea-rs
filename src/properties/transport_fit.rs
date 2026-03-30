@@ -1,7 +1,7 @@
 pub struct SpeciesTransportData {
     pub name: String,
-    viscosities: Vec<TransportFit>,
-    conductivities: Vec<TransportFit>,
+    pub(crate) viscosities: Vec<TransportFit>,
+    pub(crate) conductivities: Vec<TransportFit>,
 }
 
 impl SpeciesTransportData {

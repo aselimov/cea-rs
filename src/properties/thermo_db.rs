@@ -99,7 +99,7 @@ fn parse_species<'a>(
     }
 
     Ok(SpeciesThermoData::new(
-        name,
+        &name,
         elements,
         phase,
         polynomials,
