@@ -50,11 +50,11 @@ fn parse_species_transport_block<'a>(
             (ViscosityOrConductivity::Conductivity, fit) => conductivities.push(fit),
         }
     }
-    Ok(SpeciesTransportData {
-        name,
+    Ok(SpeciesTransportData::new(
+        &name,
         viscosities,
         conductivities,
-    })
+    ))
 }
 
 fn parse_species_header_line(line: &str) -> Result<(String, usize, usize), PropertiesError> {
