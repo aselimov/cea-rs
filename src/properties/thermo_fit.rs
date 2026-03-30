@@ -44,18 +44,22 @@ impl SpeciesThermoData {
         self.polynomials.len()
     }
 
-    pub fn polynomial_at(&self, temp: f64) -> &ThermoPolynomial {
+    pub fn polynomial_at(&self, temp: f64) -> Option<&ThermoPolynomial> {
         //TODO: Not the most efficient. Can refactor to pre-compute tables
         //and do 1-d linear interpolation if needed
         //
         //TODO: I Think condensed species need to be treated differently. Verify how that works in
         //the paper.
+        if self.polynomials.is_empty() {
+            return None;
+        }
+
         let i_polynomial = self
             .polynomials
             .iter()
             .rposition(|polynomial| temp > polynomial.temp_range.0)
             .unwrap_or(0);
-        &self.polynomials[i_polynomial]
+        Some(&self.polynomials[i_polynomial])
     }
 }
 
@@ -113,8 +117,8 @@ mod test {
             a: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
             temp_range: (0.0, 0.0),
         }
-        .cp_over_r(1.0);
-        assert_delta!(result, 28.0, 1e-10);
+        .cp_over_r(100.0);
+        assert_delta!(result, 706050403.0201, 1e-4);
 
         let result = ThermoPolynomial {
             a: vec![4.0, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0],
@@ -180,22 +184,28 @@ mod test {
             h_formation: 1.0,
         };
 
-        assert!(std::ptr::eq(data.polynomial_at(0.5), &data.polynomials[0]));
-        assert!(std::ptr::eq(data.polynomial_at(50.0), &data.polynomials[0]));
         assert!(std::ptr::eq(
-            data.polynomial_at(100.0),
+            data.polynomial_at(0.5).unwrap(),
             &data.polynomials[0]
         ));
         assert!(std::ptr::eq(
-            data.polynomial_at(100.0 + 1e-12),
+            data.polynomial_at(50.0).unwrap(),
+            &data.polynomials[0]
+        ));
+        assert!(std::ptr::eq(
+            data.polynomial_at(100.0).unwrap(),
+            &data.polynomials[0]
+        ));
+        assert!(std::ptr::eq(
+            data.polynomial_at(100.0 + 1e-12).unwrap(),
             &data.polynomials[1]
         ));
         assert!(std::ptr::eq(
-            data.polynomial_at(150.0 + 1e-12),
+            data.polynomial_at(150.0 + 1e-12).unwrap(),
             &data.polynomials[1]
         ));
         assert!(std::ptr::eq(
-            data.polynomial_at(500.0 + 1e-12),
+            data.polynomial_at(500.0 + 1e-12).unwrap(),
             &data.polynomials[1]
         ));
     }

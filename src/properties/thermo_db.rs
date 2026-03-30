@@ -295,9 +295,17 @@ mod test {
             -1.742171366e+01,
         ];
 
-        assert_vec_delta!(species.polynomial_at(650.0).a, real_coeff_1, 1e-9);
-        assert_delta!(species.polynomial_at(650.0).temp_range.0, 300.000, 1e-3);
-        assert_delta!(species.polynomial_at(650.0).temp_range.1, 1000.000, 1e-3);
+        assert_vec_delta!(species.polynomial_at(650.0).unwrap().a, real_coeff_1, 1e-9);
+        assert_delta!(
+            species.polynomial_at(650.0).unwrap().temp_range.0,
+            300.000,
+            1e-3
+        );
+        assert_delta!(
+            species.polynomial_at(650.0).unwrap().temp_range.1,
+            1000.000,
+            1e-3
+        );
 
         let real_coeff_2 = [
             -3.523782900e+05,
@@ -311,9 +319,17 @@ mod test {
             -2.695610360e+00,
         ];
 
-        assert_vec_delta!(species.polynomial_at(3500.0).a, real_coeff_2, 1e-9);
-        assert_delta!(species.polynomial_at(3500.0).temp_range.0, 1000.000, 1e-3);
-        assert_delta!(species.polynomial_at(3500.0).temp_range.1, 6000.000, 1e-3);
+        assert_vec_delta!(species.polynomial_at(3500.0).unwrap().a, real_coeff_2, 1e-9);
+        assert_delta!(
+            species.polynomial_at(3500.0).unwrap().temp_range.0,
+            1000.000,
+            1e-3
+        );
+        assert_delta!(
+            species.polynomial_at(3500.0).unwrap().temp_range.1,
+            6000.000,
+            1e-3
+        );
     }
 
     #[test]
@@ -366,7 +382,7 @@ END REACTANTS
         assert_eq!(alcl3.num_polynomials(), 2);
 
         assert_vec_delta!(
-            alcl3.polynomial_at(650.0).a,
+            alcl3.polynomial_at(650.0).unwrap().a,
             [
                 7.750600970e+04,
                 -1.440779717e+03,
@@ -380,11 +396,19 @@ END REACTANTS
             ],
             1e-9
         );
-        assert_delta!(alcl3.polynomial_at(650.0).temp_range.0, 300.0, 1e-3);
-        assert_delta!(alcl3.polynomial_at(650.0).temp_range.1, 1000.0, 1e-3);
+        assert_delta!(
+            alcl3.polynomial_at(650.0).unwrap().temp_range.0,
+            300.0,
+            1e-3
+        );
+        assert_delta!(
+            alcl3.polynomial_at(650.0).unwrap().temp_range.1,
+            1000.0,
+            1e-3
+        );
 
         assert_vec_delta!(
-            alcl3.polynomial_at(3500.0).a,
+            alcl3.polynomial_at(3500.0).unwrap().a,
             [
                 -1.378630916e+05,
                 -5.579207290e+01,
@@ -398,8 +422,16 @@ END REACTANTS
             ],
             1e-9
         );
-        assert_delta!(alcl3.polynomial_at(3500.0).temp_range.0, 1000.0, 1e-3);
-        assert_delta!(alcl3.polynomial_at(3500.0).temp_range.1, 6000.0, 1e-3);
+        assert_delta!(
+            alcl3.polynomial_at(3500.0).unwrap().temp_range.0,
+            1000.0,
+            1e-3
+        );
+        assert_delta!(
+            alcl3.polynomial_at(3500.0).unwrap().temp_range.1,
+            6000.0,
+            1e-3
+        );
 
         // --- Air (reactant 0) ---
         let air = &thermo_db.reactants[0];
@@ -419,7 +451,7 @@ END REACTANTS
         assert_eq!(air.num_polynomials(), 2);
 
         assert_vec_delta!(
-            air.polynomial_at(650.0).a,
+            air.polynomial_at(650.0).unwrap().a,
             [
                 1.009950160e+04,
                 -1.968275610e+02,
@@ -433,11 +465,11 @@ END REACTANTS
             ],
             1e-9
         );
-        assert_delta!(air.polynomial_at(650.0).temp_range.0, 300.0, 1e-3);
-        assert_delta!(air.polynomial_at(650.0).temp_range.1, 1000.0, 1e-3);
+        assert_delta!(air.polynomial_at(650.0).unwrap().temp_range.0, 300.0, 1e-3);
+        assert_delta!(air.polynomial_at(650.0).unwrap().temp_range.1, 1000.0, 1e-3);
 
         assert_vec_delta!(
-            air.polynomial_at(3500.0).a,
+            air.polynomial_at(3500.0).unwrap().a,
             [
                 2.415214430e+05,
                 -1.257874600e+03,
@@ -451,8 +483,16 @@ END REACTANTS
             ],
             1e-9
         );
-        assert_delta!(air.polynomial_at(3500.0).temp_range.0, 1000.0, 1e-3);
-        assert_delta!(air.polynomial_at(3500.0).temp_range.1, 6000.0, 1e-3);
+        assert_delta!(
+            air.polynomial_at(3500.0).unwrap().temp_range.0,
+            1000.0,
+            1e-3
+        );
+        assert_delta!(
+            air.polynomial_at(3500.0).unwrap().temp_range.1,
+            6000.0,
+            1e-3
+        );
 
         // --- n-Butanol (reactant 1) ---
         let butanol = &thermo_db.reactants[1];
