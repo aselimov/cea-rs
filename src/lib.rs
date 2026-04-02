@@ -1,3 +1,5 @@
+pub mod consts;
+pub mod mixtures;
 pub mod properties;
 
 #[macro_export]
@@ -7,7 +9,10 @@ macro_rules! assert_delta {
         assert!(
             diff <= $delta,
             "|{} - {}| = {} > {}",
-            $left, $right, diff, $delta
+            $left,
+            $right,
+            diff,
+            $delta
         );
     }};
 }
@@ -29,7 +34,11 @@ macro_rules! assert_vec_delta {
             assert!(
                 diff <= $delta,
                 "element {} not within delta: |{} - {}| = {} > {}",
-                i, l, r, diff, $delta
+                i,
+                l,
+                r,
+                diff,
+                $delta
             );
         }
     }};
