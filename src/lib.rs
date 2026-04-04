@@ -1,4 +1,5 @@
 pub mod consts;
+pub mod matrix;
 pub mod mixtures;
 pub mod properties;
 

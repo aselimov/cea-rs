@@ -120,75 +120,75 @@ mod test {
         };
 
         assert_delta!(
-            data.conductivity_at(0.5),
+            data.conductivity_at(0.5).unwrap(),
             data.conductivities[0].compute(0.5),
             1e-12
         );
         assert_delta!(
-            data.conductivity_at(1.0),
+            data.conductivity_at(1.0).unwrap(),
             data.conductivities[0].compute(1.0),
             1e-12
         );
         assert_delta!(
-            data.conductivity_at(50.0),
+            data.conductivity_at(50.0).unwrap(),
             data.conductivities[0].compute(50.0),
             1e-12
         );
         assert_delta!(
-            data.conductivity_at(100.0),
+            data.conductivity_at(100.0).unwrap(),
             data.conductivities[0].compute(100.0),
             1e-12
         );
         assert_delta!(
-            data.conductivity_at(100.0 + 1e-12),
+            data.conductivity_at(100.0 + 1e-12).unwrap(),
             data.conductivities[1].compute(100.0 + 1e-12),
             1e-12
         );
 
         assert_delta!(
-            data.conductivity_at(200.0),
+            data.conductivity_at(200.0).unwrap(),
             data.conductivities[1].compute(200.0),
             1e-12
         );
         assert_delta!(
-            data.conductivity_at(500.0),
+            data.conductivity_at(500.0).unwrap(),
             data.conductivities[1].compute(500.0),
             1e-12
         );
 
         assert_delta!(
-            data.viscosity_at(0.5),
+            data.viscosity_at(0.5).unwrap(),
             data.viscosities[0].compute(0.5),
             1e-12
         );
         assert_delta!(
-            data.viscosity_at(1.0),
+            data.viscosity_at(1.0).unwrap(),
             data.viscosities[0].compute(1.0),
             1e-12
         );
         assert_delta!(
-            data.viscosity_at(50.0),
+            data.viscosity_at(50.0).unwrap(),
             data.viscosities[0].compute(50.0),
             1e-12
         );
         assert_delta!(
-            data.viscosity_at(100.0),
+            data.viscosity_at(100.0).unwrap(),
             data.viscosities[0].compute(100.0),
             1e-12
         );
         assert_delta!(
-            data.viscosity_at(100.0 + 1e-12),
+            data.viscosity_at(100.0 + 1e-12).unwrap(),
             data.viscosities[1].compute(100.0 + 1e-12),
             1e-12
         );
 
         assert_delta!(
-            data.viscosity_at(200.0),
+            data.viscosity_at(200.0).unwrap(),
             data.viscosities[1].compute(200.0),
             1e-12
         );
         assert_delta!(
-            data.viscosity_at(500.0),
+            data.viscosity_at(500.0).unwrap(),
             data.viscosities[1].compute(500.0),
             1e-12
         );
