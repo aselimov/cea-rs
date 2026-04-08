@@ -65,10 +65,13 @@ impl fmt::Display for MatrixError {
     }
 }
 
+impl std::error::Error for MatrixError {}
+
 fn make_index_error<T>(i: usize, j: usize, m: &Matrix<T>) -> MatrixError {
     MatrixError::IndexError(i, j, m.m, m.n)
 }
 
+#[derive(Clone)]
 pub struct Matrix<T> {
     data: Vec<T>,
     m: usize,
@@ -152,6 +155,21 @@ impl<T: Numeric> Matrix<T> {
             }
         }
         Ok(c)
+    }
+
+    pub fn shape(&self) -> (usize, usize) {
+        (self.m, self.n)
+    }
+
+    pub fn swap_rows(&mut self, i: usize, j: usize) {
+        if i == j {
+            return;
+        }
+        for col in 0..self.n {
+            let first_index = self.index(i, col);
+            let second_index = self.index(j, col);
+            self.data.swap(first_index, second_index);
+        }
     }
 }
 
@@ -258,5 +276,29 @@ mod test {
         assert_eq!(*atranspose.get(3, 0).unwrap(), 4);
         assert_eq!(*atranspose.get(3, 1).unwrap(), 8);
         assert_eq!(*atranspose.get(3, 2).unwrap(), 12);
+    }
+
+    #[test]
+    fn test_swap_rows() {
+        let mut m = Matrix::from_vec(3, 3, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+
+        // Swap rows 0 and 2
+        m.swap_rows(0, 2);
+        assert_eq!(*m.get(0, 0).unwrap(), 7);
+        assert_eq!(*m.get(0, 1).unwrap(), 8);
+        assert_eq!(*m.get(0, 2).unwrap(), 9);
+        assert_eq!(*m.get(2, 0).unwrap(), 1);
+        assert_eq!(*m.get(2, 1).unwrap(), 2);
+        assert_eq!(*m.get(2, 2).unwrap(), 3);
+        // Row 1 unchanged
+        assert_eq!(*m.get(1, 0).unwrap(), 4);
+        assert_eq!(*m.get(1, 1).unwrap(), 5);
+        assert_eq!(*m.get(1, 2).unwrap(), 6);
+
+        // Swapping a row with itself is a no-op
+        m.swap_rows(1, 1);
+        assert_eq!(*m.get(1, 0).unwrap(), 4);
+        assert_eq!(*m.get(1, 1).unwrap(), 5);
+        assert_eq!(*m.get(1, 2).unwrap(), 6);
     }
 }

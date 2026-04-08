@@ -1,7 +1,9 @@
 pub mod consts;
+pub mod error;
 pub mod matrix;
 pub mod mixtures;
 pub mod properties;
+pub mod solvers;
 
 #[macro_export]
 macro_rules! assert_delta {
