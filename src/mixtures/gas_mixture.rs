@@ -15,7 +15,6 @@ pub struct GasMixture {
 
 impl GasMixture {
     // Calculate the normalized chemical potential (μ/RT) for each component in the mixture.
-    //
     // Equations 2.11 from reference paper
     pub fn gas_chem_potentials_over_rt(&self, temp: f64, pressure: f64) -> Vec<f64> {
         self.ns
