@@ -1,8 +1,10 @@
+#[derive(Clone)]
 pub enum Phase {
     Gas,
     Condensed,
 }
 
+#[derive(Clone)]
 pub struct SpeciesThermoData {
     pub name: String,
     pub elements: Vec<SpeciesElement>,
@@ -11,11 +13,14 @@ pub struct SpeciesThermoData {
     pub molecular_weight: f64,
     pub h_formation: f64,
 }
+
+#[derive(Clone)]
 pub struct ThermoPolynomial {
     pub a: Vec<f64>,
     pub temp_range: (f64, f64),
 }
 
+#[derive(Clone)]
 pub struct SpeciesElement {
     pub element: String,
     pub count: f64,
