@@ -12,6 +12,7 @@ pub struct GasMixture {
     pub(crate) species: Vec<SpeciesThermoData>,
     pub(crate) coeffs: Matrix<f64>,
     pub(crate) elements: HashMap<String, usize>,
+    pub(crate) binitial: Vec<f64>,
 }
 
 impl GasMixture {
@@ -25,7 +26,7 @@ impl GasMixture {
             });
 
         let nsum = nsum_kg_moles / mass_sum;
-        let ns = ns_kg_moles.iter().map(|n| n / mass_sum).collect();
+        let ns: Vec<f64> = ns_kg_moles.iter().map(|n| n / mass_sum).collect();
 
         // Now build out the element list
         let mut elements = HashMap::new();
@@ -49,12 +50,15 @@ impl GasMixture {
             });
         }
 
+        let binitial = get_b_current(&elements, species, &ns);
+
         GasMixture {
             ns,
             nsum,
             species: species.to_vec(),
             coeffs,
             elements,
+            binitial,
         }
     }
     // Calculate the normalized chemical potential (μ/RT) for each component in the mixture.
@@ -122,6 +126,23 @@ impl GasMixture {
     }
 }
 
+// Current kilogram-atoms of element i per kg mixture
+pub fn get_b_current(
+    ele_map: &HashMap<String, usize>,
+    species: &[SpeciesThermoData],
+    ns: &[f64],
+) -> Vec<f64> {
+    let mut b = vec![0.0; ele_map.len()];
+
+    for (n, s) in ns.iter().zip(species) {
+        for e in s.elements.iter() {
+            let i = *ele_map.get(&e.element).unwrap();
+            b[i] += n * e.count;
+        }
+    }
+    b
+}
+
 #[cfg(test)]
 mod test {
     use crate::{
@@ -151,5 +172,8 @@ mod test {
         assert_delta!(gas.coeffs.get(1, 0).unwrap(), 0.0, 1e-12);
         assert_delta!(gas.coeffs.get(1, 1).unwrap(), 2.0, 1e-12);
         assert_delta!(gas.coeffs.get(1, 2).unwrap(), 1.0, 1e-12);
+
+        let expected_b = [0.06663369409370597, 0.05830448233199272];
+        assert_vec_delta!(gas.binitial, expected_b, 1e-12);
     }
 }
