@@ -6,10 +6,16 @@ use crate::{
     properties::thermo_fit::{Phase, SpeciesThermoData},
 };
 
+pub struct MixtureComponent {
+    //kg-moles component/kg_mixture
+    n: f64,
+    s: SpeciesThermoData,
+}
+
 pub struct GasMixture {
-    pub(crate) ns: Vec<f64>,
     pub(crate) nsum: f64,
-    pub(crate) species: Vec<SpeciesThermoData>,
+    pub(crate) gasses: Vec<MixtureComponent>,
+    pub(crate) condensed: Vec<MixtureComponent>,
     pub(crate) coeffs: Matrix<f64>,
     pub(crate) elements: HashMap<String, usize>,
     pub(crate) binitial: Vec<f64>,
@@ -52,10 +58,35 @@ impl GasMixture {
 
         let binitial = get_b_current(&elements, species, &ns);
 
+        // Now separate SpeciesThermoData in gas and condensed MixtureComponents
+        let gasses = ns
+            .iter()
+            .zip(species.iter())
+            .filter_map(|(n, s)| match s.phase {
+                Phase::Gas => Some(MixtureComponent {
+                    n: *n,
+                    s: s.clone(),
+                }),
+                Phase::Condensed => None,
+            })
+            .collect();
+
+        let condensed = ns
+            .iter()
+            .zip(species.iter())
+            .filter_map(|(n, s)| match s.phase {
+                Phase::Gas => None,
+                Phase::Condensed => Some(MixtureComponent {
+                    n: *n,
+                    s: s.clone(),
+                }),
+            })
+            .collect();
+
         GasMixture {
-            ns,
             nsum,
-            species: species.to_vec(),
+            gasses,
+            condensed,
             coeffs,
             elements,
             binitial,
@@ -64,18 +95,18 @@ impl GasMixture {
     // Calculate the normalized chemical potential (μ/RT) for each component in the mixture.
     // Equations 2.11 from reference paper
     pub fn gas_chem_potentials_over_rt(&self, temp: f64, pressure: f64) -> Vec<f64> {
-        self.ns
+        self.gasses
             .iter()
-            .zip(self.species.iter())
-            .map(|(n, s)| -> f64 {
-                match s.phase {
+            .chain(self.condensed.iter())
+            .map(|c| -> f64 {
+                match c.s.phase {
                     Phase::Gas => {
-                        let p = s
-                            .polynomial_at(temp)
-                            .expect("Gas doesn't have a polynomial");
+                        let p =
+                            c.s.polynomial_at(temp)
+                                .expect("Gas doesn't have a polynomial");
                         p.h_over_rt(temp) - p.s_over_r(temp)
                             + (pressure / P_REF).ln()
-                            + (n / self.nsum).ln()
+                            + (c.n / self.nsum).ln()
                     }
                     Phase::Condensed => todo!(),
                 }
@@ -87,16 +118,16 @@ impl GasMixture {
     //
     // Equations 2.17 from reference paper
     pub fn gas_entropies_over_rt(&self, temp: f64, pressure: f64) -> Vec<f64> {
-        self.ns
+        self.gasses
             .iter()
-            .zip(self.species.iter())
-            .map(|(n, s)| -> f64 {
-                match s.phase {
+            .chain(self.condensed.iter())
+            .map(|c| -> f64 {
+                match c.s.phase {
                     Phase::Gas => {
-                        let p = s
-                            .polynomial_at(temp)
-                            .expect("Gas doesn't have a polynomial");
-                        p.s_over_r(temp) - (n / self.nsum).ln() - (pressure / P_REF).ln()
+                        let p =
+                            c.s.polynomial_at(temp)
+                                .expect("Gas doesn't have a polynomial");
+                        p.s_over_r(temp) - (c.n / self.nsum).ln() - (pressure / P_REF).ln()
                     }
                     Phase::Condensed => todo!(),
                 }
@@ -108,16 +139,16 @@ impl GasMixture {
     // Note that the enthalpy doesn't have a dependence on the pressure.
     // Equation 2.14 from the paper
     pub fn mixture_h_over_rt(&self, temp: f64) -> Vec<f64> {
-        self.ns
+        self.gasses
             .iter()
-            .zip(self.species.iter())
-            .map(|(n, s)| -> f64 {
-                match s.phase {
+            .chain(self.condensed.iter())
+            .map(|c| -> f64 {
+                match c.s.phase {
                     Phase::Gas => {
-                        let p = s
-                            .polynomial_at(temp)
-                            .expect("Gas doesn't have a polynomial");
-                        n * p.h_over_rt(temp)
+                        let p =
+                            c.s.polynomial_at(temp)
+                                .expect("Gas doesn't have a polynomial");
+                        c.n * p.h_over_rt(temp)
                     }
                     Phase::Condensed => todo!(),
                 }
@@ -163,10 +194,12 @@ mod test {
             0.01665842352342649,
             0.02498763528513974,
         ];
-        assert_vec_delta!(expected_ns, gas.ns, 1e-12);
+        let ns: Vec<f64> = gas.gasses.iter().map(|c| c.n).collect();
+
+        assert_vec_delta!(expected_ns, ns, 1e-12);
         assert_delta!(gas.nsum, 0.04997527057027948, 1e-12);
 
-        assert_delta!(gas.coeffs.get(0, 0).unwrap(), 2.0, 1e-12);
+        assert_delta!(gas.coefs.get(0, 0).unwrap(), 2.0, 1e-12);
         assert_delta!(gas.coeffs.get(0, 1).unwrap(), 0.0, 1e-12);
         assert_delta!(gas.coeffs.get(0, 2).unwrap(), 2.0, 1e-12);
         assert_delta!(gas.coeffs.get(1, 0).unwrap(), 0.0, 1e-12);
