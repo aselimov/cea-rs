@@ -9,6 +9,8 @@ use crate::{
 pub struct MixtureComponent {
     //kg-moles component/kg_mixture
     n: f64,
+    // Coefficients
+    a: Vec<f64>,
     s: SpeciesThermoData,
 }
 
@@ -16,7 +18,6 @@ pub struct GasMixture {
     pub(crate) nsum: f64,
     pub(crate) gasses: Vec<MixtureComponent>,
     pub(crate) condensed: Vec<MixtureComponent>,
-    pub(crate) coeffs: Matrix<f64>,
     pub(crate) elements: HashMap<String, usize>,
     pub(crate) binitial: Vec<f64>,
 }
@@ -46,48 +47,30 @@ impl GasMixture {
             }
         }
 
-        // Now build the coefficients
-        let mut coeffs = Matrix::new(ei, species.len(), 0.0);
-        for (j, s) in species.iter().enumerate() {
-            s.elements.iter().for_each(|e| {
-                // Safe to unwrap because elements should always have e
-                let i = *elements.get(&e.element).unwrap();
-                coeffs.set(i, j, e.count);
-            });
-        }
-
         let binitial = get_b_current(&elements, species, &ns);
 
         // Now separate SpeciesThermoData in gas and condensed MixtureComponents
-        let gasses = ns
+        let (gasses, condensed) = ns
             .iter()
             .zip(species.iter())
-            .filter_map(|(n, s)| match s.phase {
-                Phase::Gas => Some(MixtureComponent {
+            .map(|(n, s)| {
+                let mut a = vec![0.0; elements.len()];
+                s.elements.iter().for_each(|e| {
+                    let i = elements.get(&e.element).unwrap();
+                    a[*i] += e.count;
+                });
+                MixtureComponent {
                     n: *n,
+                    a,
                     s: s.clone(),
-                }),
-                Phase::Condensed => None,
+                }
             })
-            .collect();
-
-        let condensed = ns
-            .iter()
-            .zip(species.iter())
-            .filter_map(|(n, s)| match s.phase {
-                Phase::Gas => None,
-                Phase::Condensed => Some(MixtureComponent {
-                    n: *n,
-                    s: s.clone(),
-                }),
-            })
-            .collect();
+            .partition(|c| matches!(c.s.phase, Phase::Gas));
 
         GasMixture {
             nsum,
             gasses,
             condensed,
-            coeffs,
             elements,
             binitial,
         }
@@ -199,12 +182,12 @@ mod test {
         assert_vec_delta!(expected_ns, ns, 1e-12);
         assert_delta!(gas.nsum, 0.04997527057027948, 1e-12);
 
-        assert_delta!(gas.coeffs.get(0, 0).unwrap(), 2.0, 1e-12);
-        assert_delta!(gas.coeffs.get(0, 1).unwrap(), 0.0, 1e-12);
-        assert_delta!(gas.coeffs.get(0, 2).unwrap(), 2.0, 1e-12);
-        assert_delta!(gas.coeffs.get(1, 0).unwrap(), 0.0, 1e-12);
-        assert_delta!(gas.coeffs.get(1, 1).unwrap(), 2.0, 1e-12);
-        assert_delta!(gas.coeffs.get(1, 2).unwrap(), 1.0, 1e-12);
+        assert_delta!(gas.gasses[0].a[0], 2.0, 1e-12);
+        assert_delta!(gas.gasses[1].a[0], 0.0, 1e-12);
+        assert_delta!(gas.gasses[2].a[0], 2.0, 1e-12);
+        assert_delta!(gas.gasses[0].a[1], 0.0, 1e-12);
+        assert_delta!(gas.gasses[1].a[1], 2.0, 1e-12);
+        assert_delta!(gas.gasses[2].a[1], 1.0, 1e-12);
 
         let expected_b = [0.06663369409370597, 0.05830448233199272];
         assert_vec_delta!(gas.binitial, expected_b, 1e-12);
