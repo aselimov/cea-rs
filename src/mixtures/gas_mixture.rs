@@ -199,7 +199,7 @@ mod test {
         assert_vec_delta!(expected_ns, ns, 1e-12);
         assert_delta!(gas.nsum, 0.04997527057027948, 1e-12);
 
-        assert_delta!(gas.coefs.get(0, 0).unwrap(), 2.0, 1e-12);
+        assert_delta!(gas.coeffs.get(0, 0).unwrap(), 2.0, 1e-12);
         assert_delta!(gas.coeffs.get(0, 1).unwrap(), 0.0, 1e-12);
         assert_delta!(gas.coeffs.get(0, 2).unwrap(), 2.0, 1e-12);
         assert_delta!(gas.coeffs.get(1, 0).unwrap(), 0.0, 1e-12);
