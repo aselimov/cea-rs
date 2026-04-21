@@ -22,6 +22,9 @@ pub struct GasMixture {
 }
 
 impl MixtureComponent {
+    // µ/RT for the current mixture component at fixed temp and pressure
+    // µ = Molar Gibbs free energy = H - TS
+    // Therefore µ/RT = H/RT - S/R
     pub fn chem_potential_over_rt(&self, temp: f64, pressure: f64, nsum: f64) -> f64 {
         match self.s.phase {
             Phase::Gas => {
@@ -45,19 +48,6 @@ impl MixtureComponent {
                     .polynomial_at(temp)
                     .expect("Gas doesn't have a polynomial");
                 p.s_over_r(temp) - (self.n / nsum).ln() - (pressure / P_REF).ln()
-            }
-            Phase::Condensed => todo!(),
-        }
-    }
-
-    pub fn h_over_rt(&self, temp: f64) -> f64 {
-        match self.s.phase {
-            Phase::Gas => {
-                let p = self
-                    .s
-                    .polynomial_at(temp)
-                    .expect("Gas doesn't have a polynomial");
-                self.n * p.h_over_rt(temp)
             }
             Phase::Condensed => todo!(),
         }
