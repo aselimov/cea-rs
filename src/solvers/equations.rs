@@ -35,11 +35,11 @@ impl std::error::Error for SolverError {}
 // Solve Ax=b for x using Gauss-Jordan elimination
 // A must be a square n x n matrix and b must be a column vector, i.e. n x 1
 // Algorithm taken from Numerical Methods for Engineers by Ayyub and McCuen
-pub fn gauss_jordan_elimination(a: &Matrix<f64>, b: &Matrix<f64>) -> Result<Matrix<f64>, CEAError> {
-    validate_ax_eq_b(a, b)?;
+pub fn gauss_jordan_elimination(a: &Matrix<f64>, y: &Matrix<f64>) -> Result<Matrix<f64>, CEAError> {
+    validate_ax_eq_b(a, y)?;
 
     let mut a = a.clone();
-    let mut b = b.clone();
+    let mut b = y.clone();
 
     for i in 0..a.shape().0 {
         // First pivot rows
